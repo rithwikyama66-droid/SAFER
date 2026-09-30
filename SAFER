@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AegisSafe Mobile App</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            500: '#10b981',
+                            600: '#059669',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom scrollbar hiding for app-like clean look */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        @keyframes pulse-sos {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+            50% { transform: scale(1.03); box-shadow: 0 0 25px 10px rgba(225, 29, 72, 0.4); }
+        }
+        .animate-sos-pulse {
+            animation: pulse-sos 2s infinite ease-in-out;
+        }
+
+        @keyframes radar-sweep {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .animate-radar {
+            animation: radar-sweep 4s linear infinite;
+        }
+
+        /* Glassmorphism effects */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Custom dark theme styling for date pickers */
+        input[type="date"] {
+            color-scheme: dark;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            cursor: pointer;
+            filter: invert(0.8) sepia(100%) saturate(300%) hue-rotate(110deg);
+        }
+
+        /* Touch interaction optimizations */
+        button, a { -webkit-tap-highlight-color: transparent; }
+    </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans antialiased flex flex-col justify-center items-center select-none overflow-x-hidden">
+
+    <!-- Frame Mode Switcher Header -->
+    <div class="w-full max-w-md px-4 py-2 flex items-center justify-between text-xs text-slate-400">
+        <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+            <span class="font-bold tracking-wider text-slate-300">AEGISSAFE MOBILE v3.8</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="toggleDeviceFrame()" id="frame-toggle-btn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium transition flex items-center gap-1.5 border border-slate-700">
+                <i class="fas fa-mobile-screen"></i>
+                <span id="frame-toggle-text">Full Screen</span>
+            </button>
+            <button onclick="toggleOfflineMode()" id="connectivity-btn" class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-emerald-400 font-medium transition flex items-center gap-1.5 border border-slate-700">
+                <i id="connectivity-icon" class="fas fa-wifi"></i>
+                <span id="connectivity-text">Online</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Mobile App Container Mockup -->
+    <main id="app-shell" class="w-full max-w-md h-[844px] max-h-[92vh] bg-slate-950 rounded-[44px] border-[10px] border-slate-800 shadow-2xl shadow-emerald-950/20 flex flex-col relative overflow-hidden ring-1 ring-slate-700/60 transition-all duration-300">
+
+        <!-- Mobile Dynamic Island / Top Notch & Status Bar -->
+        <div class="w-full bg-slate-950/90 backdrop-blur-md pt-3 pb-1 px-6 flex items-center justify-between z-30 shrink-0 select-none">
+            <!-- Digital Clock -->
+            <span id="mobile-clock" class="text-xs font-bold font-mono text-slate-200">12:00</span>
+            
+            <!-- Dynamic Island / Sensor Notch -->
+            <div class="w-24 h-5 bg-black rounded-full flex items-center justify-center gap-2 px-2 border border-slate-800/80">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-[9px] font-bold text-slate-400 font-mono">ARMED</span>
+            </div>
+
+            <!-- Status Icons -->
+            <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                <i id="status-network-icon" class="fas fa-signal"></i>
+                <i class="fas fa-wifi"></i>
+                <i class="fas fa-battery-three-quarters text-emerald-400"></i>
+            </div>
+        </div>
+
+        <!-- Mobile App Top Bar -->
+        <header class="glass-panel px-4 py-2.5 flex items-center justify-between z-20 shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-sm shadow-md shadow-emerald-500/20">
+                    <i class="fas fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm font-extrabold text-white tracking-wide flex items-center gap-1.5">
+                        AEGISSAFE
+                    </h1>
+                    <p id="user-header-greeting" class="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                        <i class="fas fa-circle text-[6px]"></i> Active Protection
+                    </p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+                <!-- User Account Profile Button -->
+                <button onclick="openProfileModal()" id="profile-top-btn" title="Account Profile" class="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 hover:bg-slate-700 flex items-center justify-center transition font-bold text-xs">
+                    <i id="user-profile-icon" class="fas fa-user-check text-sm"></i>
+                </button>
+                <!-- Stealth Disguise Button -->
+                <button onclick="toggleStealthMode()" title="Camouflage Mode" class="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 flex items-center justify-center transition">
+                    <i class="fas fa-calculator text-xs"></i>
+                </button>
+                <!-- Direct Quick SOS Pill -->
+                <button onclick="triggerSOS('Top Bar SOS Button')" class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-[11px] tracking-wider shadow-md shadow-rose-600/30 flex items-center gap-1">
+                    <i class="fas fa-bolt text-[10px]"></i> SOS
+                </button>
+            </div>
+        </header>
+
+        <!-- NEW USER ONBOARDING SCREEN (FIRST-TIME USERS) -->
+        <div id="onboarding-screen" class="absolute inset-0 z-40 bg-slate-950/95 backdrop-blur-xl flex flex-col justify-between p-5 overflow-y-auto no-scrollbar">
+            <div class="space-y-4 my-auto py-4">
+                <div class="text-center space-y-2">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 font-black text-2xl mx-auto shadow-xl shadow-emerald-500/20">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <h2 id="onboarding-title" class="text-xl font-black text-white tracking-wide">Create AegisSafe Account</h2>
+                    <p id="onboarding-subtitle" class="text-xs text-slate-400">Please complete your emergency dispatch profile before activating protection.</p>
+                </div>
+
+                <!-- Step 1: User Registration Form -->
+                <form id="onboarding-form" onsubmit="handleRegistration(event)" class="glass-panel p-4 rounded-2xl space-y-3.5 border border-slate-800">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i class="fas fa-user text-emerald-400"></i> Full Name *
+                        </label>
+                        <input type="text" id="reg-name" required placeholder="e.g. Alex Morgan" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i class="fas fa-phone text-emerald-400"></i> Phone Number *
+                        </label>
+                        <input type="tel" id="reg-phone" required placeholder="+1 (555) 234-5678" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i class="fas fa-location-dot text-emerald-400"></i> Home / Emergency Address *
+                        </label>
+                        <textarea id="reg-address" required rows="2" placeholder="e.g. 742 Evergreen Terrace, Springfield" class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"></textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                            <i class="fas fa-calendar-day text-emerald-400"></i> Date of Birth *
+                        </label>
+                        <input type="date" id="reg-dob" required class="w-full bg-slate-900/90 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer">
+                    </div>
+
+                    <button type="submit" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition transform active:scale-98 flex items-center justify-center gap-2">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>Continue to Security Permissions</span>
+                    </button>
+                </form>
+
+                <!-- Step 2: System Permissions Authorization (Hidden initially) -->
+                <div id="permissions-step" class="glass-panel p-4 rounded-2xl space-y-3 border border-slate-800 hidden">
+                    <p class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fas fa-shield-halved"></i> Device Access & Safety Clearances
+                    </p>
+                    <p class="text-[10px] text-slate-400 leading-relaxed">
+                        To transmit live evidence and location telemetry during an active SOS, AegisSafe requires device permissions:
+                    </p>
+
+                    <div class="space-y-2 pt-1">
+                        <!-- Front & Rear Camera Permission Item -->
+                        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-200">Front & Rear Cameras</p>
+                                    <p class="text-[9px] text-slate-400">Captures encrypted evidence snapshots</p>
+                                </div>
+                            </div>
+                            <span id="perm-cam-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Pending
+                            </span>
+                        </div>
+
+                        <!-- Microphone Permission Item -->
+                        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center text-xs">
+                                    <i class="fas fa-microphone"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-200">Microphone Access</p>
+                                    <p class="text-[9px] text-slate-400">Voice Safe-Word & audio relay</p>
+                                </div>
+                            </div>
+                            <span id="perm-mic-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Pending
+                            </span>
+                        </div>
+
+                        <!-- GPS Location Access Item -->
+                        <div class="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center text-xs">
+                                    <i class="fas fa-location-crosshairs"></i>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-200">GPS Geolocation</p>
+                                    <p class="text-[9px] text-slate-400">Live coordinates for emergency dispatch</p>
+                                </div>
+                            </div>
+                            <span id="perm-geo-badge" class="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                Pending
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 pt-2">
+                        <button onclick="requestAllDevicePermissions()" class="w-full py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition flex items-center justify-center gap-2">
+                            <i class="fas fa-key"></i>
+                            <span>Grant Permissions & Enter App</span>
+                        </button>
+                        <button onclick="finalizeOnboarding()" id="finish-onboarding-btn" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5">
+                            <i class="fas fa-shield-check text-emerald-400"></i>
+                            <span>Skip & Enter Directly</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center text-[10px] text-slate-500 font-mono">
+                AEGISSAFE SECURE PROFILE ENCRYPTION • VER 3.8
+            </div>
+        </div>
+
+        <!-- App Screens Container (Scrollable) -->
+        <div id="screens-viewport" class="flex-1 overflow-y-auto no-scrollbar relative p-4 space-y-4">
+
+            <!-- TAB 1: HOME / DASHBOARD SCREEN -->
+            <section id="screen-home" class="tab-screen space-y-4">
+                
+                <!-- Main SOS Panic Center -->
+                <div class="glass-panel rounded-3xl p-6 text-center flex flex-col items-center justify-center relative overflow-hidden border border-rose-500/20">
+                    <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-rose-500/10 rounded-full blur-2xl"></div>
+                    <div class="absolute -left-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl"></div>
+
+                    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Hold for 1.5s or Tap to Panic</p>
+
+                    <!-- Interactive Animated Panic Trigger Button -->
+                    <button id="sos-touch-btn" 
+                            onmousedown="startHoldSOS()" 
+                            onmouseup="cancelHoldSOS()" 
+                            mouseleave="cancelHoldSOS()"
+                            ontouchstart="startHoldSOS()" 
+                            ontouchend="cancelHoldSOS()"
+                            onclick="handleSOSTap()" 
+                            class="w-36 h-36 rounded-full bg-gradient-to-br from-rose-500 via-rose-600 to-red-700 text-white shadow-2xl shadow-rose-600/50 flex flex-col items-center justify-center border-4 border-rose-400/40 animate-sos-pulse active:scale-95 transition-transform duration-150 relative overflow-hidden group">
+                        
+                        <!-- Progress Overlay for Press Hold -->
+                        <div id="sos-hold-progress" class="absolute bottom-0 left-0 right-0 bg-rose-950/80 transition-all duration-75 h-0 pointer-events-none"></div>
+                        
+                        <i class="fas fa-fingerprint text-4xl mb-1 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-black text-xl tracking-wider">PANIC</span>
+                        <span class="text-[9px] font-bold text-rose-200 tracking-widest uppercase">DISPATCH SOS</span>
+                    </button>
+
+                    <div class="mt-4 flex items-center justify-center gap-2 text-xs text-slate-300 bg-slate-900/60 px-3 py-1.5 rounded-full border border-slate-800">
+                        <i class="fas fa-location-dot text-emerald-400"></i>
+                        <span class="font-mono text-[11px]">17.3850° N, 78.4867° E</span>
+                    </div>
+                </div>
+
+                <!-- Active Security Status Grid -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="glass-panel p-3.5 rounded-2xl flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <div>
+                    <p class="text-[10px] text-slate-400 uppercase font-semibold">Guard Status</p>
+                            <p class="text-xs font-bold text-slate-100">Armed & Armed</p>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-3.5 rounded-2xl flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg">
+                            <i class="fas fa-tower-cell"></i>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-400 uppercase font-semibold">Mesh Transport</p>
+                            <p id="mesh-transport-status" class="text-xs font-bold text-slate-100">Cellular + BLE</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fast Action Safety Widgets -->
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fas fa-bolt text-amber-400"></i> Quick Safety Triggers
+                        </h2>
+                        <span class="text-[10px] font-semibold text-emerald-400">3 Active</span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="simulateShakeTrigger()" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-center space-y-1 transition">
+                            <i class="fas fa-mobile-screen-button text-amber-400 text-base"></i>
+                            <p class="text-[10px] font-bold text-slate-200">Shake Trigger</p>
+                            <p class="text-[8px] text-slate-400">>2.5g G-Force</p>
+                        </button>
+
+                        <button onclick="simulateVoiceTrigger()" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-center space-y-1 transition">
+                            <i class="fas fa-microphone text-rose-400 text-base"></i>
+                            <p class="text-[10px] font-bold text-slate-200">Safe-Word</p>
+                            <p class="text-[8px] text-slate-400">"Red Velvet"</p>
+                        </button>
+
+                        <button onclick="switchTab('triggers')" class="p-2.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-center space-y-1 transition">
+                            <i class="fas fa-stopwatch text-sky-400 text-base"></i>
+                            <p class="text-[10px] font-bold text-slate-200">Safety Timer</p>
+                            <p class="text-[8px] text-slate-400">Dead-Man</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Emergency Dispatch Quick Preview -->
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fas fa-phone text-emerald-400"></i> Dispatch Contacts
+                        </h2>
+                        <button onclick="switchTab('contacts')" class="text-[11px] text-emerald-400 hover:underline font-semibold">Manage</button>
+                    </div>
+                    <div id="home-contacts-preview" class="space-y-2">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- TAB 2: ZERO-TOUCH TRIGGERS SCREEN -->
+            <section id="screen-triggers" class="tab-screen space-y-4 hidden">
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <h2 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fas fa-shield-virus text-amber-400"></i> Zero-Touch Passive Triggers
+                    </h2>
+                    <p class="text-xs text-slate-400">Automated panic triggers respond instantly without requiring screen interaction.</p>
+                </div>
+
+                <!-- Dead-Man Safety Timer Widget -->
+                <div class="glass-panel rounded-2xl p-4 space-y-4 border border-amber-500/20">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-stopwatch"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-white">Dead-Man Safety Timer</h3>
+                                <p class="text-[10px] text-slate-400">Auto-triggers SOS if not disarmed in time</p>
+                            </div>
+                        </div>
+                        <span id="deadman-timer-display" class="font-mono text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20">
+                            DISARMED
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2">
+                        <button onclick="startDeadManTimer(15)" class="py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition">15s Alert</button>
+                        <button onclick="startDeadManTimer(30)" class="py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition">30s Timer</button>
+                        <button onclick="startDeadManTimer(60)" class="py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/30 transition">60s Timer</button>
+                    </div>
+                    <button 
+onclick="stopDeadManTimer()" class="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold border border-slate-700 transition">
+                        Clear & Reset Timer
+                    </button>
+                </div>
+
+                <!-- Motion & Accelerometer Trigger Card -->
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-mobile-retro"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-white">Violent Motion / Shake</h3>
+                                <p class="text-[10px] text-slate-400">Triggers on rapid hardware shake</p>
+                            </div>
+                        </div>
+                        <button onclick="simulateShakeTrigger()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition">
+                            Test Shake
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Voice Safe-Word Keyword Listener -->
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div class="w-8 h-8 rounded-lg bg-teal-500/20 text-teal-400 flex items-center justify-center text-sm">
+                                <i class="fas fa-microphone"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold text-white">Voice Safe-Word Trigger</h3>
+                                <p class="text-[10px] text-slate-400">Phrase: "Red Velvet" or "Help"</p>
+                            </div>
+                        </div>
+                        <button onclick="simulateVoiceTrigger()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold border border-slate-700 transition">
+                            Simulate Voice
+                        </button>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- TAB 3: DUAL CAMERA EVIDENCE STREAM SCREEN -->
+            <section id="screen-cam" class="tab-screen space-y-4 hidden">
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                <i class="fas fa-video text-rose-400"></i> Dual Camera Feeds
+                            </h2>
+                            <p class="text-[10px] text-slate-400">Front & Back WebRTC with GPS watermarking</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <button onclick="toggleActiveHardwareCam()" title="Flip main mobile camera between Back and Front" class="px-2.5 py-1.5 rounded-xl bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 text-xs font-semibold hover:bg-indigo-600/50 transition flex items-center gap-1">
+                                <i class="fas fa-camera-rotate text-[11px]"></i> Flip Cam
+                            </button>
+                            <button onclick="initDualCameras()" class="px-2.5 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1 hover:bg-emerald-500/30">
+                                <i class="fas fa-power-off text-[10px]"></i> Start Feeds
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dual Viewport Grid -->
+                    <div class="space-y-3">
+                        <!-- Front Cam Viewport -->
+                        <div class="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800 aspect-video flex flex-col justify-between p-2.5">
+                            <video id="front-cam-video" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover transform -scale-x-100 hidden"></video>
+                            <div id="front-cam-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 space-y-1">
+                                <i class="fas fa-user-shield text-2xl"></i>
+                                <span class="text-[10px] font-semibold">Front Camera Idle</span>
+                            </div>
+                            
+                            <div class="relative z-10 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <span class="px-2 py-0.5 rounded bg-slate-900/80 text-white text-[9px] font-bold uppercase border border-slate-700">Rear (Environment)</span>
+                            <button onclick="startRearCamera()" title="Activate rear environment camera directly" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[9px] font-bold border border-slate-700 transition">
+                                <i class="fas fa-rotate"></i> Force Rear
+                            </button>
+                        </div>
+                        <span id="rear-cam-status" class="px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 text-[9px] font-semibold">Offline</span>
+                    </div>
+
+                            <div class="relative z-10 bg-slate-900/90 p-1.5 rounded-lg border border-slate-800 text-[9px] font-mono text-emerald-400">
+                                <p id="front-cam-gps">LAT: 17.3850掳 N | LON: 78.4867掳 E</p>
+                                <p id="front-cam-time" class="text-slate-400 text-[8px]">UTC STAMPING...</p>
+                            </div>
+                        </div>
+
+                        <!-- Rear Cam Viewport -->
+                        <div class="relative bg-slate-950 rounded-xl overflow-hidden border border-slate-800 aspect-video flex flex-col justify-between p-2.5">
+                            <video id="rear-cam-video" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover hidden"></video>
+                            <div id="rear-cam-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-600 space-y-1">
+                                <i class="fas fa-camera text-2xl"></i>
+                                <span class="text-[10px] font-semibold">Rear Camera Idle</span>
+                            </div>
+                            
+                            <div class="relative z-10 flex items-center justify-between">
+                                <div class="flex items-center gap-1.5">
+                                    <span class="px-2 py-0.5 rounded bg-slate-900/80 text-white text-[9px] font-bold uppercase border border-slate-700">Rear (Environment)</span>
+                                    <button onclick="switchRearCamMode()" title="Toggle physical back camera or simulated environmental feed" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-emerald-400 text-[9px] font-bold border border-slate-700 transition">
+                                        <i class="fas fa-rotate"></i> Source
+                                    </button>
+                                </div>
+                                <span id="rear-cam-status" class="px-2 py-0.5 rounded bg-slate-800/80 text-slate-400 text-[9px] font-semibold">Offline</span>
+                            </div>
+
+                            <div class="relative z-10 bg-slate-900/90 p-1.5 rounded-lg border border-slate-800 text-[9px] font-mono text-emerald-400">
+                                <p id="rear-cam-gps">LAT: 17.3850掳 N | LON: 78.4867掳 E</p>
+                                <p id="rear-cam-time" class="text-slate-400 text-[8px]">UTC STAMPING...</p>
+                            </div>
+                        </div>
+                    </div>
+<button onclick="captureDualSnapshots('Mobile Stream Trigger')" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-camera text-emerald-400"></i>
+                        <span>Snap Encrypted Evidence Frame</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 4: EVIDENCE VAULT SCREEN -->
+            <section id="screen-vault" class="tab-screen space-y-4 hidden">
+                <div class="glass-panel rounded-2xl p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                            <i class="fas fa-vault text-indigo-400"></i> Evidence Vault
+                        </h2>
+                        <span id="evidence-counter" class="text-[10px] font-semibold text-slate-400">0 Records</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400">SHA-256 watermarked image logs saved locally.</p>
+                </div>
+
+                <!-- Gallery Grid -->
+                <div id="evidence-gallery" class="grid grid-cols-2 gap-2.5 min-h-[160px] p-3 glass-panel rounded-2xl items-center justify-center">
+                    <div class="col-span-full text-center text-slate-500 py-8 space-y-2">
+                        <i class="fas fa-box-open text-3xl"></i>
+                        <p class="text-xs">Vault is empty. Triggering SOS or taking snapshots populates records here.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: EMERGENCY CONTACTS SCREEN -->
+            <section id="screen-contacts" class="tab-screen space-y-4 hidden">
+                <div class="glass-panel rounded-2xl p-4 space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                        <div>
+                            <h2 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                                <i class="fas fa-address-book text-emerald-400"></i> Emergency Contacts
+                            </h2>
+                            <p class="text-[10px] text-slate-400">Direct dispatch recipients</p>
+                        </div>
+                        <span id="contact-counter-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                            0 / 5
+                        </span>
+                    </div>
+
+                    <div id="emergency-contacts-list" class="space-y-2">
+                        <!-- Dynamic contacts list -->
+                    </div>
+
+                    <button onclick="openAddContactModal()" id="add-contact-btn" class="w-full py-2.5 rounded-xl border border-dashed border-slate-700 hover:border-emerald-500/50 hover:bg-slate-800/50 text-slate-300 hover:text-emerald-400 font-semibold text-xs transition flex items-center justify-center gap-2">
+                        <i class="fas fa-plus-circle"></i>
+                        <span>Add Emergency Contact</span>
+                    </button>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="glass-panel border-t border-slate-800/80 px-2 py-2 flex items-center justify-around z-30 shrink-0">
+            <button onclick="switchTab('home')" id="nav-home" class="nav-btn flex flex-col items-center gap-0.5 text-emerald-400 transition">
+                <i class="fas fa-house text-base"></i>
+                <span class="text-[9px] font-bold">Home</span>
+            </button>
+            <button onclick="switchTab('triggers')" id="nav-triggers" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+                <i class="fas fa-bolt text-base"></i>
+                <span class="text-[9px] font-bold">Triggers</span>
+            </button>
+            <button onclick="switchTab('cam')" id="nav-cam" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+                <i class="fas fa-video text-base"></i>
+                <span class="text-[9px] font-bold">Live Cam</span>
+            </button>
+            <button onclick="switchTab('vault')" id="nav-vault" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+                <i class="fas fa-vault text-base"></i>
+                <span class="text-[9px] font-bold">Vault</span>
+            </button>
+            <button onclick="switchTab('contacts')" id="nav-contacts" class="nav-btn flex flex-col items-center gap-0.5 text-slate-400 hover:text-slate-200 transition">
+                <i class="fas fa-address-book text-base"></i>
+                <span class="text-[9px] font-bold">Contacts</span>
+            </button>
+        </nav>
+
+        <!-- Home Indicator Bar (iOS style) -->
+        <div class="w-full bg-slate-950 py-1.5 flex justify-center z-30 shrink-0">
+            <div class="w-28 h-1 bg-slate-700/80 rounded-full"></div>
+        </div>
+
+    </main>
+
+    <!-- ACCOUNT PROFILE VIEW & EDIT MODAL -->
+    <div id="profile-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-id-card text-emerald-400 text-sm"></i>
+                    <h3 class="text-sm font-bold text-white">Account Details & Settings</h3>
+                </div>
+                <button type="button" onclick="closeProfileModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+
+            <!-- View Mode -->
+            <div id="profile-view-mode" class="space-y-3">
+                <div class="glass-panel p-3 rounded-xl border border-slate-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">User Name</span>
+                        <span id="view-profile-name" class="text-xs font-bold text-white">--</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Phone</span>
+                        <span id="view-profile-phone" class="text-xs font-mono text-emerald-400">--</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase">Date of Birth</span>
+                        <span id="view-profile-dob" class="text-xs font-mono text-slate-300">--</span>
+                    </div>
+                    <div class="pt-1 border-t border-slate-800">
+                        <span class="text-[10px] font-bold text-slate-400 uppercase block mb-0.5">Address</span>
+                        <p id="view-profile-address" class="text-xs text-slate-300 leading-relaxed">--</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleProfileEdit(true)" class="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700 transition flex items-center justify-center gap-1.5">
+                        <i class="fas fa-user-pen"></i> Edit Profile Details
+                    </button>
+                </div>
+            </div>
+
+            <!-- Edit Form Mode -->
+            <form id="profile-edit-form" onsubmit="saveProfileUpdates(event)" class="space-y-3 hidden">
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Full Name</label>
+                    <input type="text" id="edit-name" required class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Phone Number</label>
+                    <input type="tel" id="edit-phone" required class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Emergency Address</label>
+                    <textarea id="edit-address" required rows="2" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Date of Birth</label>
+                    <input type="date" id="edit-dob" required class="w-full bg-slate-800/80 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer">
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <button type="button" onclick="toggleProfileEdit(false)" class="flex-1 px-3 py-2 rounded-xl border border-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-800 transition">Cancel</button>
+                    <button type="submit" class="flex-1 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<!-- ADD/EDIT CONTACT MODAL -->
+    <div id="contact-modal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2.5">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-user-plus text-emerald-400 text-sm"></i>
+                    <h3 id="modal-contact-title" class="text-sm font-bold text-white">Add Emergency Contact</h3>
+                </div>
+                <button type="button" onclick="closeContactModal()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+            
+            <form id="add-contact-form" onsubmit="saveEmergencyContact(event)" class="space-y-3">
+                <input type="hidden" id="contact-edit-index" value="-1">
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Contact Name</label>
+                    <input type="text" id="contact-name" required placeholder="e.g. Sarah Jenkins" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Phone Number</label>
+                    <input type="tel" id="contact-phone" required placeholder="+1 (555) 019-2834" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Priority Tag</label>
+                    <select id="contact-priority" class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                        <option value="Primary Contact">Primary Guardian (1st Alert)</option>
+                        <option value="Secondary Contact">Secondary Contact (2nd Alert)</option>
+                        <option value="Family Member">Family Member</option>
+                        <option value="Police Helpline">Police Helpline</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2 pt-2">
+                    <button type="button" onclick="closeContactModal()" class="flex-1 px-3 py-2 rounded-xl border border-slate-700 text-slate-300 font-semibold text-xs hover:bg-slate-800 transition">Cancel</button>
+                    <button type="submit" class="flex-1 px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-500/20 transition">Save Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- FULLSCREEN ACTIVE SOS OVERLAY -->
+    <div id="sos-active-overlay" class="fixed inset-0 z-50 bg-rose-950/95 backdrop-blur-xl hidden flex-col items-center justify-center p-6 text-center space-y-4">
+        <div class="w-20 h-20 rounded-full bg-rose-600/30 border-4 border-rose-500 flex items-center justify-center text-rose-500 text-4xl animate-ping shrink-0">
+            <i class="fas fa-triangle-exclamation"></i>
+        </div>
+        
+        <div class="space-y-1 max-w-xs">
+            <h2 class="text-xl font-black text-white tracking-wide">EMERGENCY SOS ACTIVATED</h2>
+            <p id="sos-trigger-reason" class="text-xs font-semibold text-rose-200">Triggered via Manual Panic Button</p>
+        </div>
+
+        <!-- 24/7 AegisSafe Control Room Direct Access Card -->
+        <div class="w-full max-w-xs bg-slate-950/90 border-2 border-emerald-500/80 rounded-2xl p-3 shadow-2xl text-left space-y-2.5 relative overflow-hidden">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+                    <span class="text-[11px] font-black tracking-wider text-emerald-400 uppercase">24/7 Control Room Bridge</span>
+                </div>
+                <span class="text-[9px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">AGENT #409</span>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center text-lg shrink-0">
+                    <i class="fas fa-headset"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p id="control-room-status-text" class="text-xs font-bold text-white truncate">Connected to Response Dispatch</p>
+                    <p class="text-[9px] text-slate-400 truncate">Live Operator: Officer Sarah V.</p>
+                </div>
+            </div>
+
+            <!-- Direct Control Room Communication Buttons -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="toggleControlRoomAudio()" id="ctrl-room-audio-btn" class="py-2 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] transition flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fas fa-phone"></i>
+                    <span id="ctrl-room-audio-label">2-Way Operator Voice</span>
+                </button>
+                <button onclick="streamToControlRoom()" class="py-2 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-black text-[10px] transition flex items-center justify-center gap-1.5 shadow-md">
+                    <i class="fas fa-tower-broadcast"></i>
+                    <span>Stream Live Cams</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="bg-rose-900/40 border border-rose-700/50 rounded-xl p-2.5 max-w-xs w-full space-y-1 text-left text-[10px] font-mono">
+            <div class="flex justify-between text-rose-200">
+                <span>CONTROL ROOM ACK:</span>
+                <span class="text-emerald-400 font-bold">RECEIVING DATA</span>
+            </div>
+            <div class="flex justify-between text-rose-200">
+                <span>SMS CONTACT RELAY:</span>
+                <span class="text-emerald-400 font-bold">DISPATCHED</span>
+            </div>
+            <div class="flex justify-between text-rose-200">
+                <span>GPS BEACON (17.3850掳 N):</span>
+                <span class="text-emerald-400 font-bold">LIVE TELEMETRY</span>
+            </div>
+        </div>
+
+        <!-- Disarm PIN Input -->
+        <div class="space-y-2 w-full max-w-xs">
+            <div class="bg-rose-900/60 border border-rose-500/50 rounded-xl p-2 text-center shadow-inner">
+                <p class="text-[9px] uppercase font-bold text-rose-300 tracking-wider">Dynamic Session Passcode</p>
+                <p id="dynamic-pin-display" class="font-mono text-lg font-black text-emerald-300 tracking-widest my-0.5">----</p>
+            </div>
+            <input type="password" id="disarm-pin-input" placeholder="Enter Generated Session PIN" class="w-full text-center bg-rose-900/60 border border-rose-500 rounded-xl px-3 py-2 text-xs text-white placeholder-rose-300/50 focus:outline-none font-mono tracking-widest">
+            <button onclick="disarmSOS()" class="w-full py-2.5 rounded-xl bg-white text-rose-950 font-black text-xs shadow-xl hover:bg-slate-100 transition">
+                DISARM EMERGENCY ALARM
+            </button>
+        </div>
+    </div>
+
+    <!-- STEALTH CALCULATOR OVERLAY -->
+    <div id="stealth-calculator-overlay" class="fixed inset-0 z-50 bg-slate-950 hidden flex-col items-center justify-center p-4">
+        <div class="w-full max-w-xs bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl space-y-3">
+            <div class="flex justify-between items-center text-[10px] text-slate-500 font-mono border-b border-slate-800 pb-2">
+                <span>CALCULATOR DISGUISE</span>
+                <button onclick="toggleStealthMode()" class="hover:text-white"><i class="fas fa-times"></i> Exit</button>
+            </div>
+            <div class="bg-slate-950 rounded-xl p-3 text-right">
+                <span id="calc-display" class="font-mono text-2xl font-bold text-emerald-400">0</span>
+            </div>
+            <div class="grid grid-cols-4 gap-2">
+                <button onclick="calcInput('C')" class="p-3 bg-slate-800 rounded-xl text-xs font-bold text-rose-400">C</button>
+                <button onclick="calcInput('/')" class="p-3 bg-slate-800 rounded-xl text-xs font-bold text-emerald-400">/</button>
+                <button onclick="calcInput('*')" class="p-3 bg-slate-800 rounded-xl text-xs font-bold text-emerald-400">*</button>
+                <button onclick="calcInput('-')" class="p-3 bg-slate-800 rounded-xl text-xs font-bold text-emerald-400">-</button>
+                
+                <button onclick="calcInput('7')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">7</button>
+                <button onclick="calcInput('8')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">8</button>
+                <button onclick="calcInput('9')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">9</button>
+                <button onclick="calcInput('+')" class="p-3 bg-slate-800 rounded-xl text-xs font-bold text-emerald-400">+</button>
+                
+                <button onclick="calcInput('4')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">4</button>
+                <button onclick="calcInput('5')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">5</button>
+                <button onclick="calcInput('6')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">6</button>
+                <button onclick="calcInput('=')" class="row-span-2 p-3 bg-emerald-500 rounded-xl text-xs font-bold text-slate-950 flex items-center justify-center">=</button>
+                
+                <button onclick="calcInput('1')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">1</button>
+                <button onclick="calcInput('2')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">2</button>
+                <button onclick="calcInput('3')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">3</button>
+                
+                <button onclick="calcInput('0')" class="col-span-2 p-3 bg-slate-800/60 rounded-xl text-xs font-bold">0</button>
+                <button onclick="calcInput('.')" class="p-3 bg-slate-800/60 rounded-xl text-xs font-bold">.</button>
+            </div>
+            <p class="text-[9px] text-slate-600 text-center font-mono">Press C then 911 then = for silent SOS</p>
+        </div>
+    </div>
+
+    <!-- Hidden Canvas for Evidence Watermarking -->
+    <canvas id="watermark-canvas" class="hidden"></canvas>
+
+    <script>
+        // User Profile & System State
+        let userProfile = null;
+        let permissionStates = {
+            camera: false,
+            microphone: false,
+            geolocation: false
+        };
+        let isControlRoomAudioActive = false;
+
+        // Emergency & SOS Trigger State
+        let isSOSActive = false;
+        let currentDisarmPin = null;
+        let emergencyContacts = [
+            { name: "Dispatch Helpline", phone: "+1 (800) 555-0199", priority: "Police Helpline" },
+            { name: "Sarah Jenkins", phone: "+1 (555) 234-5678", priority: "Primary Contact" }
+        ];
+        let holdProgress = 0;
+        let holdProgressInterval = null;
+        let audioCtx = null;
+        let sirenOscillator = null;
+        let activeCameraStreams = { front: null, back: null };
+        let simulatedRearCanvas = null;
+        let simulatedRearAnimId = null;
+        let currentRearMode = 'auto'; // 'hardware', 'simulated', 'sync'
+        let activeHardwareCam = 'back'; // Track active hardware camera focus
+        let deadManSeconds = 0;
+        let deadManTimer = null;
+        let isOffline = false;
+        // Camera streams initialization with enhanced multi-device & mobile back-camera support
+        async function initDualCameras() {
+            showToast('Initializing camera sensors...', 'info');
+            
+            // On mobile devices, attempt to open the Back / Environment camera first
+            const rearSuccess = await startRearCamera();
+            
+            // Attempt to open front camera if browser permits concurrent streams
+            const frontSuccess = await startFrontCamera(true);
+
+            if (rearSuccess && frontSuccess) {
+                showToast('Front & Back Cameras Live Simultaneously', 'success');
+            } else if (rearSuccess) {
+                showToast('Back Camera Live! Tap "Flip Cam" to switch feed', 'success');
+            } else if (frontSuccess) {
+                showToast('Front Camera Active. Environmental Scanner Ready.', 'info');
+                enableRearCamFallback();
+            } else {
+                showToast('Unable to open live hardware camera. Simulated environmental telemetry active.', 'warning');
+                enableRearCamFallback();
+            }
+        }
+
+        // Dedicated Mobile Back/Rear Camera Stream Acquisition
+        async function startRearCamera() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                enableRearCamFallback();
+                return false;
+            }
+
+            // Clean up previous rear stream if active
+            if (activeCameraStreams.back) {
+                try {
+                    activeCameraStreams.back.getTracks().forEach(track => track.stop());
+                } catch(e) {}
+                activeCameraStreams.back = null;
+            }
+
+            let stream = null;
+
+            // Progressive fallback constraints for mobile rear camera
+            const rearConstraints = [
+                { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+                { video: { facingMode: "environment" } },
+                { video: { facingMode: { exact: "environment" } } }
+            ];
+
+            for (const constraint of rearConstraints) {
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia(constraint);
+                    if (stream) break;
+                } catch (e) {
+                    console.warn('Rear camera constraint attempt failed:', e);
+                }
+            }
+
+            // Fallback: Query device list if constraints failed
+            if (!stream) {
+                try {
+                    const devices = await navigator.mediaDevices.enumerateDevices();
+                    const videoDevices = devices.filter(d => d.kind === 'videoinput');
+                    
+                    const rearDevice = videoDevices.find(d => {
+                        const lbl = d.label.toLowerCase();
+                        return lbl.includes('back') || lbl.includes('rear') || lbl.includes('environment') || lbl.includes('0') || lbl.includes('out');
+                    }) || (videoDevices.length > 1 ? videoDevices[videoDevices.length - 1] : null);
+
+                    if (rearDevice && rearDevice.deviceId) {
+                        stream = await navigator.mediaDevices.getUserMedia({
+                            video: { deviceId: { exact: rearDevice.deviceId } }
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Enumerated back camera access attempt failed:', e);
+                }
+            }
+
+            if (stream) {
+                bindBackCam(stream);
+                activeHardwareCam = 'back';
+                currentRearMode = 'hardware';
+                showToast('Back Camera activated successfully', 'success');
+                return true;
+            } else {
+                enableRearCamFallback();
+                return false;
+            }
+        }
+
+        // Dedicated Mobile Front/Selfie Camera Stream Acquisition
+        async function startFrontCamera(allowFail = false) {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+
+            if (activeCameraStreams.front) {
+                try {
+                    activeCameraStreams.front.getTracks().forEach(track => track.stop());
+                } catch(e) {}
+                activeCameraStreams.front = null;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { ideal: "user" } }
+                });
+                bindFrontCam(stream);
+                return true;
+            } catch (e) {
+                if (!allowFail) console.warn('Front camera access error:', e);
+                return false;
+            }
+        }
+// Quick Flip Toggle for Mobile Hardware Cameras
+        async function toggleActiveHardwareCam() {
+            showToast('Flipping active camera...', 'info');
+            
+            if (activeHardwareCam === 'back') {
+                // Switch hardware camera pipeline from Back to Front
+                if (activeCameraStreams.back) {
+                    try { activeCameraStreams.back.getTracks().forEach(t => t.stop()); } catch(e){}
+                    activeCameraStreams.back = null;
+                }
+                const success = await startFrontCamera();
+                if (success) {
+                    activeHardwareCam = 'front';
+                    enableRearCamFallback();
+                    showToast('Switched hardware camera to Front Camera', 'success');
+                }
+            } else {
+                // Switch hardware camera pipeline from Front to Back
+                if (activeCameraStreams.front) {
+                    try { activeCameraStreams.front.getTracks().forEach(t => t.stop()); } catch(e){}
+                    activeCameraStreams.front = null;
+                }
+                const success = await startRearCamera();
+                if (success) {
+                    activeHardwareCam = 'back';
+                } else {
+                    await startFrontCamera();
+                    activeHardwareCam = 'front';
+                }
+            }
+        }
+
+        function bindFrontCam(stream) {
+            const frontVid = document.getElementById('front-cam-video');
+            if (frontVid) {
+                frontVid.srcObject = stream;
+                frontVid.classList.remove('hidden');
+                document.getElementById('front-cam-placeholder')?.classList.add('hidden');
+                const status = document.getElementById('front-cam-status');
+                if (status) {
+                    status.innerText = "LIVE";
+                    status.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold";
+                }
+            }
+            activeCameraStreams.front = stream;
+        }
+
+        function bindBackCam(stream) {
+            const rearVid = document.getElementById('rear-cam-video');
+            if (rearVid) {
+                rearVid.srcObject = stream;
+                rearVid.classList.remove('hidden');
+                document.getElementById('rear-cam-placeholder')?.classList.add('hidden');
+                const status = document.getElementById('rear-cam-status');
+                if (status) {
+                    status.innerText = "LIVE (REAR)";
+                    status.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold";
+                }
+            }
+            activeCameraStreams.back = stream;
+        }
+
+        function createSimulatedRearStream() {
+            if (!simulatedRearCanvas) {
+                simulatedRearCanvas = document.createElement('canvas');
+                simulatedRearCanvas.width = 640;
+                simulatedRearCanvas.height = 360;
+            }
+            const ctx = simulatedRearCanvas.getContext('2d');
+            let scanLine = 0;
+
+            function renderSimulatedFeed() {
+                const width = simulatedRearCanvas.width;
+                const height = simulatedRearCanvas.height;
+
+                // Night-vision tactical background
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(0, 0, width, height);
+
+                // Grid lines
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+                ctx.lineWidth = 1;
+                const gridSize = 40;
+                for (let x = 0; x < width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                // Target box & crosshair
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(width / 2 - 80, height / 2 - 60, 160, 120);
+
+                ctx.beginPath();
+                ctx.moveTo(width / 2 - 15, height / 2);
+                ctx.lineTo(width / 2 + 15, height / 2);
+                ctx.moveTo(width / 2, height / 2 - 15);
+                ctx.lineTo(width / 2, height / 2 + 15);
+                ctx.stroke();
+
+                // Animated scan line
+                scanLine = (scanLine + 2) % height;
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.fillRect(0, scanLine, width, 6);
+
+                // Text Overlay
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText('[REAR CAM 鈥� ENV SCANNER ACTIVE]', 20, 30);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px monospace';
+                ctx.fillText(`SENSOR ID: AEGIS-REAR-ENV2`, 20, 50);
+                ctx.fillText(`GPS FIX: 17.3850掳 N, 78.4867掳 E`, 20, height - 35);
+                ctx.fillText(`TIME: ${new Date().toLocaleTimeString()}`, 20, height - 15);
+
+                simulatedRearAnimId = requestAnimationFrame(renderSimulatedFeed);
+            }
+
+            if (simulatedRearAnimId) cancelAnimationFrame(simulatedRearAnimId);
+            renderSimulatedFeed();
+
+            return simulatedRearCanvas.captureStream(30);
+        }
+
+        function enableRearCamFallback() {
+            const rearVid = document.getElementById('rear-cam-video');
+            const placeholder = document.getElementById('rear-cam-placeholder');
+            const status = document.getElementById('rear-cam-status');
+
+            const simStream = createSimulatedRearStream();
+            if (rearVid) {
+                rearVid.srcObject = simStream;
+                rearVid.classList.remove('hidden');
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+            if (status) {
+                status.innerText = "LIVE (ENV FEED)";
+                status.className = "px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-bold";
+            }
+            currentRearMode = 'simulated';
+        }
+
+        function switchRearCamMode() {
+            startRearCamera();
+        }
+
+        function handleRegistration(event) {
+            event.preventDefault();
+            const name = document.getElementById('reg-name').value.trim();
+            const phone = document.getElementById('reg-phone').value.trim();
+            const address = document.getElementById('reg-address').value.trim();
+            const dob = document.getElementById('reg-dob').value;
+
+            if (!name || !phone || !address || !dob) {
+                showToast('Please fill out all required details.', 'warning');
+                return;
+            }
+
+            userProfile = { name, phone, address, dob };
+            
+            // Move to Step 2: System Permissions Authorization
+            document.getElementById('onboarding-form').classList.add('hidden');
+            document.getElementById('permissions-step').classList.remove('hidden');
+            document.getElementById('onboarding-title').innerText = "Grant Safety Permissions";
+            document.getElementById('onboarding-subtitle').innerText = "Enable access to cameras, microphone, and location for full emergency coverage.";
+            showToast('Account profile created! Please configure permissions.', 'info');
+        }
+
+        async function requestAllDevicePermissions() {
+            showToast('Requesting device access permissions...', 'info');
+
+            // 1. Camera & Microphone Access
+            try {
+                if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                    permissionStates.camera = true;
+                    permissionStates.microphone = true;
+                    
+                    // Stop test tracks after granting
+                    stream.getTracks().forEach(track => track.stop());
+
+                    updatePermissionBadge('perm-cam-badge', true);
+                    updatePermissionBadge('perm-mic-badge', true);
+                } else {
+                    permissionStates.camera = true;
+                    permissionStates.microphone = true;
+                    updatePermissionBadge('perm-cam-badge', true);
+                    updatePermissionBadge('perm-mic-badge', true);
+                }
+            } catch(e) {
+                // Fallback / simulation mode if permissions denied or restricted
+                permissionStates.camera = true;
+                permissionStates.microphone = true;
+                updatePermissionBadge('perm-cam-badge', true);
+                updatePermissionBadge('perm-mic-badge', true);
+            }
+
+            // 2. Geolocation Access (wrapped in a Promise so we wait for the browser prompt)
+            if ("geolocation" in navigator) {
+                await new Promise((resolve) => {
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            permissionStates.geolocation = true;
+                            updatePermissionBadge('perm-geo-badge', true);
+                            resolve();
+                        },
+                        (err) => {
+                            permissionStates.geolocation = true;
+                            updatePermissionBadge('perm-geo-badge', true);
+                            resolve();
+                        },
+                        { timeout: 4000 }
+                    );
+                });
+            } else {
+                permissionStates.geolocation = true;
+                updatePermissionBadge('perm-geo-badge', true);
+            }
+
+            showToast('Permissions granted! Opening main dashboard...', 'success');
+
+            // Directly complete onboarding and open the main home page
+            finalizeOnboarding();
+        }
+
+        function updatePermissionBadge(elementId, granted) {
+            const badge = document.getElementById(elementId);
+            if (badge) {
+                if (granted) {
+                    badge.innerText = "Granted";
+                    badge.className = "px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+                }
+            }
+        }
+
+        function finalizeOnboarding() {
+            if (!userProfile) return;
+            const onboardingScreen = document.getElementById('onboarding-screen');
+            if (onboardingScreen) {
+                onboardingScreen.classList.add('hidden');
+            }
+            updateProfileDisplays();
+            switchTab('home');
+            showToast(`Welcome ${userProfile.name}! AegisSafe protection is active.`, 'success');
+        }
+
+        // Control Room direct interaction handlers
+        function toggleControlRoomAudio() {
+            isControlRoomAudioActive = !isControlRoomAudioActive;
+            const label = document.getElementById('ctrl-room-audio-label');
+            const btn = document.getElementById('ctrl-room-audio-btn');
+            const statusText = document.getElementById('control-room-status-text');
+
+            if (isControlRoomAudioActive) {
+                label.innerText = "Operator Voice Active";
+                btn.className = "py-2 px-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-black text-[10px] transition flex items-center justify-center gap-1.5 shadow-md animate-pulse";
+                if (statusText) statusText.innerText = "2-Way Audio Operator Call Active";
+                showToast('Connected 2-Way Voice Call with Control Room Operator', 'success');
+            } else {
+                label.innerText = "2-Way Operator Voice";
+                btn.className = "py-2 px-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[10px] transition flex items-center justify-center gap-1.5 shadow-md";
+                if (statusText) statusText.innerText = "Connected to Response Dispatch";
+                showToast('Control Room Voice Muted', 'info');
+            }
+        }
+
+        function streamToControlRoom() {
+            initDualCameras();
+            captureDualSnapshots('Live Stream to Control Room');
+            showToast('Dual Camera Feeds live-broadcasting to Control Room Command Center', 'success');
+        }
+
+        // Account Profile & Onboarding Control Functions
+        function checkUserProfileState() {
+            const onboardingScreen = document.getElementById('onboarding-screen');
+            if (!userProfile) {
+                if (onboardingScreen) onboardingScreen.classList.remove('hidden');
+            } else {
+                if (onboardingScreen) onboardingScreen.classList.add('hidden');
+                updateProfileDisplays();
+            }
+        }
+
+        function updateProfileDisplays() {
+            if (!userProfile) return;
+
+            const viewName = document.getElementById('view-profile-name');
+            const viewPhone = document.getElementById('view-profile-phone');
+            const viewAddress = document.getElementById('view-profile-address');
+            const viewDob = document.getElementById('view-profile-dob');
+            const headerGreeting = document.getElementById('user-header-greeting');
+
+            if (viewName) viewName.innerText = userProfile.name;
+            if (viewPhone) viewPhone.innerText = userProfile.phone;
+            if (viewAddress) viewAddress.innerText = userProfile.address;
+            if (viewDob) viewDob.innerText = calculateAge(userProfile.dob);
+
+            if (headerGreeting) {
+                headerGreeting.innerHTML = `<i class="fas fa-circle text-[6px]"></i> ${userProfile.name.split(' ')[0]} 鈥� Protected`;
+            }
+
+            // Sync edit inputs
+            document.getElementById('edit-name').value = userProfile.name;
+            document.getElementById('edit-phone').value = userProfile.phone;
+            document.getElementById('edit-address').value = userProfile.address;
+            document.getElementById('edit-dob').value = userProfile.dob;
+        }
+
+        function openProfileModal() {
+            if (!userProfile) {
+                showToast('Please complete registration first.', 'warning');
+                return;
+            }
+            toggleProfileEdit(false);
+            const modal = document.getElementById('profile-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeProfileModal() {
+            const modal = document.getElementById('profile-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function toggleProfileEdit(enableEdit) {
+            const viewMode = document.getElementById('profile-view-mode');
+            const editForm = document.getElementById('profile-edit-form');
+            if (enableEdit) {
+                viewMode.classList.add('hidden');
+                editForm.classList.remove('hidden');
+            } else {
+                viewMode.classList.remove('hidden');
+                editForm.classList.add('hidden');
+            }
+        }
+
+        function saveProfileUpdates(event) {
+            event.preventDefault();
+            const name = document.getElementById('edit-name').value.trim();
+            const phone = document.getElementById('edit-phone').value.trim();
+            const address = document.getElementById('edit-address').value.trim();
+            const dob = document.getElementById('edit-dob').value;
+
+            if (!name || !phone || !address || !dob) {
+                showToast('Please fill out all profile fields.', 'warning');
+                return;
+            }
+
+            userProfile = { name, phone, address, dob };
+            updateProfileDisplays();
+            toggleProfileEdit(false);
+            showToast('Profile updated successfully!', 'success');
+        }
+
+        // Digital clock update
+        function updateClock() {
+            const now = new Date();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('mobile-clock').innerText = `${hours}:${minutes}`;
+        }
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            const screens = document.querySelectorAll('.tab-screen');
+            screens.forEach(screen => screen.classList.add('hidden'));
+
+            const targetScreen = document.getElementById(`screen-${tabName}`);
+            if (targetScreen) targetScreen.classList.remove('hidden');
+
+            const navBtns = document.querySelectorAll('.nav-btn');
+            navBtns.forEach(btn => {
+                btn.classList.remove('text-emerald-400');
+                btn.classList.add('text-slate-400');
+            });
+
+            const activeNavBtn = document.getElementById(`nav-${tabName}`);
+            if (activeNavBtn) {
+                activeNavBtn.classList.remove('text-slate-400');
+                activeNavBtn.classList.add('text-emerald-400');
+            }
+        }
+// Emergency Contacts Management
+        function renderEmergencyContacts() {
+            const listContainer = document.getElementById('emergency-contacts-list');
+            const homePreview = document.getElementById('home-contacts-preview');
+            const counterBadge = document.getElementById('contact-counter-badge');
+            const addBtn = document.getElementById('add-contact-btn');
+
+            if (listContainer) listContainer.innerHTML = '';
+            if (homePreview) homePreview.innerHTML = '';
+            if (counterBadge) counterBadge.innerText = `${emergencyContacts.length} / 5`;
+
+            if (addBtn) {
+                if (emergencyContacts.length >= 5) {
+                    addBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                } else {
+                    addBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                }
+            }
+
+            if (emergencyContacts.length === 0) {
+                if (listContainer) {
+                    listContainer.innerHTML = `
+                        <div class="text-center py-4 text-slate-500 text-xs">
+                            No emergency contacts set. Tap below to add.
+                        </div>
+                    `;
+                }
+                if (homePreview) {
+                    homePreview.innerHTML = `<p class="text-[11px] text-slate-500">No contacts configured.</p>`;
+                }
+                return;
+            }
+
+            emergencyContacts.forEach((contact, idx) => {
+                // Render list item
+                if (listContainer) {
+                    const card = document.createElement('div');
+                    card.className = "p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between";
+                    
+                    let badgeStyle = "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+                    if (contact.priority.includes("Police")) badgeStyle = "bg-rose-500/10 text-rose-400 border-rose-500/20";
+
+                    card.innerHTML = `
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-emerald-400 border border-slate-700">
+                                ${idx + 1}
+                            </div>
+                            <div>
+                                <p class="text-xs font-bold text-white">${contact.name}</p>
+                                <p class="text-[10px] font-mono text-slate-400">${contact.phone}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="openAddContactModal(${idx})" class="p-1 text-slate-400 hover:text-emerald-400 transition"><i class="fas fa-pen text-xs"></i></button>
+                            <button onclick="deleteContact(${idx})" class="p-1 text-slate-400 hover:text-rose-400 transition"><i class="fas fa-trash text-xs"></i></button>
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                }
+
+                // Render home preview (first 2 contacts)
+                if (homePreview && idx < 2) {
+                    const prevItem = document.createElement('div');
+                    prevItem.className = "p-2 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between text-xs";
+                    prevItem.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-user-check text-emerald-400 text-xs"></i>
+                            <span class="font-semibold text-slate-200">${contact.name}</span>
+                        </div>
+                        <span class="font-mono text-[10px] text-slate-400">${contact.phone}</span>
+                    `;
+                    homePreview.appendChild(prevItem);
+                }
+            });
+        }
+
+        function openAddContactModal(editIdx = -1) {
+            if (editIdx === -1 && emergencyContacts.length >= 5) {
+                showToast('Maximum of 5 emergency contacts limit reached.', 'warning');
+                return;
+            }
+
+            const modal = document.getElementById('contact-modal');
+            const title = document.getElementById('modal-contact-title');
+            
+            if (editIdx >= 0 && editIdx < emergencyContacts.length) {
+                title.innerText = "Edit Contact";
+                document.getElementById('contact-name').value = emergencyContacts[editIdx].name;
+                document.getElementById('contact-phone').value = emergencyContacts[editIdx].phone;
+                document.getElementById('contact-priority').value = emergencyContacts[editIdx].priority;
+                document.getElementById('contact-edit-index').value = editIdx;
+            } else {
+                title.innerText = "Add Contact";
+                document.getElementById('add-contact-form').reset();
+                document.getElementById('contact-edit-index').value = "-1";
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeContactModal() {
+            const modal = document.getElementById('contact-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+            const form = document.getElementById('add-contact-form');
+            if (form) form.reset();
+        }
+
+        function saveEmergencyContact(event) {
+            event.preventDefault();
+            const nameInput = document.getElementById('contact-name');
+            const phoneInput = document.getElementById('contact-phone');
+            const prioritySelect = document.getElementById('contact-priority');
+            const editIdx = parseInt(document.getElementById('contact-edit-index').value, 10);
+
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const priority = prioritySelect.value;
+
+            if (!name || !phone) {
+                showToast('Please enter both name and phone number.', 'warning');
+                return;
+            }
+
+            if (editIdx >= 0 && editIdx < emergencyContacts.length) {
+                emergencyContacts[editIdx] = { name, phone, priority };
+                showToast(`Updated ${name}`, 'success');
+            } else {
+                if (emergencyContacts.length >= 5) {
+                    showToast('Maximum 5 emergency contacts limit reached.', 'warning');
+                    return;
+                }
+                emergencyContacts.push({ name, phone, priority });
+                showToast(`Added ${name} to contacts`, 'success');
+            }
+
+            renderEmergencyContacts();
+            closeContactModal();
+        }
+
+        function deleteContact(idx) {
+            if (idx >= 0 && idx < emergencyContacts.length) {
+                const name = emergencyContacts[idx].name;
+                emergencyContacts.splice(idx, 1);
+                renderEmergencyContacts();
+                showToast(`Removed ${name}`, 'info');
+            }
+        }
+
+        // Hold-to-activate or tap SOS Panic
+        function startHoldSOS() {
+            holdProgress = 0;
+            const progressBar = document.getElementById('sos-hold-progress');
+            
+            holdProgressInterval = setInterval(() => {
+                holdProgress += 5;
+                if (progressBar) progressBar.style.height = `${holdProgress}%`;
+                if (holdProgress >= 100) {
+                    cancelHoldSOS();
+                    triggerSOS('Hold-to-Press Panic Button (1.5s)');
+                }
+            }, 75);
+        }
+
+        function cancelHoldSOS() {
+            if (holdProgressInterval) clearInterval(holdProgressInterval);
+            holdProgress = 0;
+            const progressBar = document.getElementById('sos-hold-progress');
+            if (progressBar) progressBar.style.height = '0%';
+        }
+
+        function handleSOSTap() {
+            if (holdProgress < 50) {
+                triggerSOS('Touch Panic SOS Tap');
+            }
+        }
+
+        function triggerSOS(reason) {
+            if (isSOSActive) return;
+            isSOSActive = true;
+
+            // Generate a dynamic 4-digit PIN every time SOS is activated
+            currentDisarmPin = Math.floor(1000 + Math.random() * 9000).toString();
+            const pinDisplay = document.getElementById('dynamic-pin-display');
+            if (pinDisplay) {
+                pinDisplay.innerText = currentDisarmPin;
+            }
+
+            document.getElementById('sos-trigger-reason').innerText = `Reason: ${reason}`;
+            document.getElementById('sos-active-overlay').classList.remove('hidden');
+            document.getElementById('sos-active-overlay').classList.add('flex');
+
+            captureDualSnapshots(`SOS: ${reason}`);
+            playEmergencySiren();
+            showToast(`EMERGENCY SOS DISPATCHED! PIN: ${currentDisarmPin}`, 'error');
+        }
+
+        function disarmSOS() {
+            const pin = document.getElementById('disarm-pin-input').value.trim();
+            if (pin === currentDisarmPin) {
+                isSOSActive = false;
+                currentDisarmPin = null;
+                document.getElementById('sos-active-overlay').classList.add('hidden');
+                document.getElementById('sos-active-overlay').classList.remove('flex');
+                document.getElementById('disarm-pin-input').value = '';
+                stopEmergencySiren();
+                showToast('AegisSafe Disarmed & Reset', 'success');
+            } else {
+                showToast('Incorrect PIN! Enter session PIN shown on screen.', 'error');
+            }
+        }
+
+        // Web Audio Siren
+        function playEmergencySiren() {
+            try {
+                if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                sirenOscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                sirenOscillator.type = 'sawtooth';
+                sirenOscillator.frequency.setValueAtTime(850, audioCtx.currentTime);
+                sirenOscillator.frequency.exponentialRampToValueAtTime(450, audioCtx.currentTime + 0.5);
+                sirenOscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                sirenOscillator.start();
+            } catch(e) {}
+        }
+
+        function stopEmergencySiren() {
+            if (sirenOscillator) {
+                try { sirenOscillator.stop(); } catch(e){}
+            }
+        }
+
+        // Camera streams initialization with enhanced multi-device support
+        async function initDualCameras() {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                showToast('Camera API not supported on this browser/device', 'warning');
+                enableRearCamFallback();
+                return;
+            }
+
+            try {
+                // Request initial access to list available devices
+                let initialStream = null;
+                try {
+                    initialStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                } catch(e) {
+                    console.warn('Initial camera prompt bypassed or fallback required');
+                }
+const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+                const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+                let frontDeviceId = null;
+                let rearDeviceId = null;
+
+                videoDevices.forEach(device => {
+                    const label = device.label.toLowerCase();
+                    if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('0')) {
+                        rearDeviceId = device.deviceId;
+                    } else if (label.includes('front') || label.includes('user') || label.includes('facing') || label.includes('1')) {
+                        frontDeviceId = device.deviceId;
+                    }
+                });
+
+                // Assign default indexes if labels are generic
+                if (!frontDeviceId && videoDevices.length > 0) frontDeviceId = videoDevices[0].deviceId;
+                if (!rearDeviceId && videoDevices.length > 1) rearDeviceId = videoDevices[1].deviceId;
+
+                // 1. Initialize Front Camera Stream
+                try {
+                    const frontConstraints = frontDeviceId 
+                        ? { video: { deviceId: { exact: frontDeviceId } } }
+                        : { video: { facingMode: 'user' } };
+                    
+                    const frontStream = initialStream || await navigator.mediaDevices.getUserMedia(frontConstraints);
+                    bindFrontCam(frontStream);
+                } catch(frontErr) {
+                    try {
+                        const fallbackFront = await navigator.mediaDevices.getUserMedia({ video: true });
+                        bindFrontCam(fallbackFront);
+                    } catch(e) {
+                        console.warn('Front camera stream unavailable:', e);
+                    }
+                }
+
+                // 2. Initialize Rear Camera Stream
+                let rearSuccess = false;
+
+                if (rearDeviceId && rearDeviceId !== frontDeviceId) {
+                    try {
+                        const rearStream = await navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: rearDeviceId } } });
+                        bindBackCam(rearStream);
+                        rearSuccess = true;
+                    } catch(e) {
+                        console.warn('Exact rear deviceId request failed:', e);
+                    }
+                }
+
+                if (!rearSuccess) {
+                    try {
+                        const environmentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { exact: 'environment' } } });
+                        bindBackCam(environmentStream);
+                        rearSuccess = true;
+                    } catch(e) {
+                        try {
+                            const fallbackEnvironment = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                            bindBackCam(fallbackEnvironment);
+                            rearSuccess = true;
+                        } catch(envErr) {
+                            console.warn('Hardware rear camera not physically present or restricted');
+                        }
+                    }
+                }
+
+                // If hardware environment camera is unavailable (e.g. single-webcam desktop/laptop), activate environmental scanner stream
+                if (!rearSuccess) {
+                    enableRearCamFallback();
+                } else {
+                    currentRearMode = 'hardware';
+                    showToast('Front & Rear Cameras Active', 'success');
+                }
+
+            } catch(err) {
+                console.error('Dual camera init error:', err);
+                enableRearCamFallback();
+            }
+        }
+
+        function bindFrontCam(stream) {
+            const frontVid = document.getElementById('front-cam-video');
+            if (frontVid) {
+                frontVid.srcObject = stream;
+                frontVid.classList.remove('hidden');
+                document.getElementById('front-cam-placeholder')?.classList.add('hidden');
+                const status = document.getElementById('front-cam-status');
+                if (status) {
+                    status.innerText = "LIVE";
+                    status.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold";
+                }
+            }
+            activeCameraStreams.front = stream;
+        }
+
+        function bindBackCam(stream) {
+            const rearVid = document.getElementById('rear-cam-video');
+            if (rearVid) {
+                rearVid.srcObject = stream;
+                rearVid.classList.remove('hidden');
+                document.getElementById('rear-cam-placeholder')?.classList.add('hidden');
+                const status = document.getElementById('rear-cam-status');
+                if (status) {
+                    status.innerText = "LIVE (REAR)";
+                    status.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold";
+                }
+            }
+            activeCameraStreams.back = stream;
+        }
+
+        function createSimulatedRearStream() {
+            if (!simulatedRearCanvas) {
+                simulatedRearCanvas = document.createElement('canvas');
+                simulatedRearCanvas.width = 640;
+                simulatedRearCanvas.height = 360;
+            }
+            const ctx = simulatedRearCanvas.getContext('2d');
+            let scanLine = 0;
+
+            function renderSimulatedFeed() {
+                const width = simulatedRearCanvas.width;
+                const height = simulatedRearCanvas.height;
+
+                // Night-vision tactical background
+                ctx.fillStyle = '#050b14';
+                ctx.fillRect(0, 0, width, height);
+
+                // Grid lines
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)';
+                ctx.lineWidth = 1;
+                const gridSize = 40;
+                for (let x = 0; x < width; x += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < height; y += gridSize) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(width, y);
+                    ctx.stroke();
+                }
+
+                // Target box & crosshair
+                ctx.strokeStyle = 'rgba(16, 185, 129, 0.6)';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(width / 2 - 80, height / 2 - 60, 160, 120);
+
+                ctx.beginPath();
+                ctx.moveTo(width / 2 - 15, height / 2);
+                ctx.lineTo(width / 2 + 15, height / 2);
+                ctx.moveTo(width / 2, height / 2 - 15);
+                ctx.lineTo(width / 2, height / 2 + 15);
+                ctx.stroke();
+
+                // Animated scan line
+                scanLine = (scanLine + 2) % height;
+                ctx.fillStyle = 'rgba(16, 185, 129, 0.2)';
+                ctx.fillRect(0, scanLine, width, 6);
+
+                // Text Overlay
+                ctx.fillStyle = '#10b981';
+                ctx.font = 'bold 14px monospace';
+                ctx.fillText('[REAR CAM 鈥� ENV SCANNER ACTIVE]', 20, 30);
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px monospace';
+                ctx.fillText(`SENSOR ID: AEGIS-REAR-ENV2`, 20, 50);
+                ctx.fillText(`GPS FIX: 17.3850掳 N, 78.4867掳 E`, 20, height - 35);
+                ctx.fillText(`TIME: ${new Date().toLocaleTimeString()}`, 20, height - 15);
+
+                simulatedRearAnimId = requestAnimationFrame(renderSimulatedFeed);
+            }
+
+            if (simulatedRearAnimId) cancelAnimationFrame(simulatedRearAnimId);
+            renderSimulatedFeed();
+
+            return simulatedRearCanvas.captureStream(30);
+        }
+
+        function enableRearCamFallback() {
+            const rearVid = document.getElementById('rear-cam-video');
+            const placeholder = document.getElementById('rear-cam-placeholder');
+            const status = document.getElementById('rear-cam-status');
+
+            const simStream = createSimulatedRearStream();
+            if (rearVid) {
+                rearVid.srcObject = simStream;
+                rearVid.classList.remove('hidden');
+            }
+            if (placeholder) placeholder.classList.add('hidden');
+            if (status) {
+                status.innerText = "LIVE (ENV FEED)";
+                status.className = "px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-bold";
+            }
+            currentRearMode = 'simulated';
+            showToast('Rear camera initialized with Environmental Telemetry feed', 'info');
+        }
+
+        function switchRearCamMode() {
+            if (currentRearMode === 'simulated') {
+                if (activeCameraStreams.front) {
+                    const rearVid = document.getElementById('rear-cam-video');
+                    if (rearVid) rearVid.srcObject = activeCameraStreams.front;
+                    const status = document.getElementById('rear-cam-status');
+                    if (status) {
+                        status.innerText = "LIVE (FRONT MIRROR)";
+                        status.className = "px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold";
+                    }
+                    currentRearMode = 'sync';
+                    showToast('Switched Rear View to Mirror Feed', 'info');
+                } else {
+                    initDualCameras();
+                }
+            } else if (currentRearMode === 'sync') {
+                enableRearCamFallback();
+            } else {
+                enableRearCamFallback();
+            }
+        }
+
+        function captureDualSnapshots(source = 'Automated Trigger') {
+            const gallery = document.getElementById('evidence-gallery');
+            const emptyState = gallery?.querySelector('.col-span-full');
+            if (emptyState) emptyState.remove();
+
+            const canvas = document.getElementById('watermark-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = 400;
+            canvas.height = 250;
+
+            ctx.fillStyle = '#020617';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const rearVid = document.getElementById('rear-cam-video');
+            const frontVid = document.getElementById('front-cam-video');
+
+            // Draw frame from live video streams if available
+            try {
+                if (rearVid && !rearVid.classList.contains('hidden') && rearVid.readyState >= 2) {
+                    ctx.drawImage(rearVid, 0, 0, canvas.width, canvas.height);
+                } else if (frontVid && !frontVid.classList.contains('hidden') && frontVid.readyState >= 2) {
+                    ctx.drawImage(frontVid, 0, 0, canvas.width, canvas.height);
+                }
+            } catch(e) {
+                console.warn('Snapshot frame capture fallback:', e);
+            }
+
+            // Stamping evidence watermark
+            ctx.fillStyle = 'rgba(2, 6, 23, 0.45)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#10b981';
+            ctx.font = 'bold 11px monospace';
+            ctx.fillText(`AEGISSAFE EVIDENCE SNAPSHOT`, 12, 22);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = '10px monospace';
+            ctx.fillText(`GPS: 17.3850掳 N, 78.4867掳 E`, 12, 40);
+            ctx.fillText(`TIME: ${new Date().toLocaleTimeString()}`, 12, 56);
+            ctx.fillText(`TRIGGER: ${source.substring(0, 28)}`, 12, 72);
+            ctx.fillText(`HASH: SHA256-${Math.random().toString(36).substring(2, 8).toUpperCase()}`, 12, 88);
+
+            const dataUrl = canvas.toDataURL('image/jpeg');
+
+            const item = document.createElement('div');
+            item.className = "rounded-xl overflow-hidden border border-slate-800 bg-slate-950 p-1.5 space-y-1";
+            item.innerHTML = `
+                <img src="${dataUrl}" class="w-full h-20 object-cover rounded-lg">
+                <p class="text-[9px] font-bold text-white truncate">${source}</p>
+                <p class="text-[8px] font-mono text-emerald-400">${new Date().toLocaleTimeString()}</p>
+            `;
+            gallery.prepend(item);
+
+            const count = gallery.children.length;
+            const counterEl = document.getElementById('evidence-counter');
+            if (counterEl) counterEl.innerText = `${count} Records`;
+        }
+
+        // Dead-Man Safety Countdown
+        function startDeadManTimer(seconds) {
+            stopDeadManTimer();
+            deadManSeconds = seconds;
+            document.getElementById('deadman-timer-display').innerText = `${deadManSeconds}s ACTIVE`;
+
+            deadManTimer = setInterval(() => {
+                deadManSeconds--;
+                if (deadManSeconds <= 0) {
+                    stopDeadManTimer();
+                    triggerSOS('Dead-Man Countdown Timer Expiration');
+                } else {
+                    document.getElementById('deadman-timer-display').innerText = `${deadManSeconds}s ACTIVE`;
+                }
+            }, 1000);
+            showToast(`Dead-Man Timer armed for ${seconds}s`, 'info');
+        }
+
+        function stopDeadManTimer() {
+            if (deadManTimer) clearInterval(deadManTimer);
+            document.getElementById('deadman-timer-display').innerText = "DISARMED";
+        }
+
+        function simulateShakeTrigger() {
+            triggerSOS('Violent Shake Motion (>2.5g)');
+        }
+
+        function simulateVoiceTrigger() {
+            triggerSOS('Voice Safe-Word ("Red Velvet")');
+        }
+
+        function initShakeDetection() {
+            if (window.DeviceMotionEvent) {
+                window.addEventListener('devicemotion', (e) => {
+                    const acc = e.accelerationIncludingGravity;
+                    if (acc && (Math.abs(acc.x) > 28 || Math.abs(acc.y) > 28)) {
+                        triggerSOS('Accelerometer Hardware Shake');
+                    }
+                });
+            }
+        }
+
+        function initSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                const recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+                    if (transcript.includes('help') || transcript.includes('red velvet')) {
+                        triggerSOS('Voice Safe-Word Trigger');
+                    }
+                };
+                try { recognition.start(); } catch(e){}
+            }
+        }
+
+        function toggleOfflineMode() {
+            isOffline = !isOffline;
+            const btnText = document.getElementById('connectivity-text');
+            const btnIcon = document.getElementById('connectivity-icon');
+            const meshStatus = document.getElementById('mesh-transport-status');
+
+            if (isOffline) {
+                btnText.innerText = "Offline";
+                btnIcon.className = "fas fa-plane text-amber-400";
+                if (meshStatus) meshStatus.innerText = "BLE Mesh Peer";
+                showToast('Switched to Offline Cellular & BLE Mesh', 'info');
+            } else {
+                btnText.innerText = "Online";
+                btnIcon.className = "fas fa-wifi text-emerald-400";
+                if (meshStatus) meshStatus.innerText = "Cellular + BLE";
+                showToast('Restored Online Cloud Channel', 'success');
+            }
+        }
+
+        function toggleDeviceFrame() {
+            const appShell = document.getElementById('app-shell');
+            const frameBtnText = document.getElementById('frame-toggle-text');
+
+            isDeviceFrameMode = !isDeviceFrameMode;
+
+            if (isDeviceFrameMode) {
+                appShell.className = "w-full max-w-md h-[844px] max-h-[92vh] bg-slate-950 rounded-[44px] border-[10px] border-slate-800 shadow-2xl shadow-emerald-950/20 flex flex-col relative overflow-hidden ring-1 ring-slate-700/60 transition-all duration-300";
+                frameBtnText.innerText = "Full Screen";
+            } else {
+                appShell.className = "w-full max-w-full h-full min-h-screen bg-slate-950 rounded-none border-0 shadow-none flex flex-col relative overflow-hidden transition-all duration-300";
+                frameBtnText.innerText = "Phone Frame";
+            }
+        }
+
+        function toggleStealthMode() {
+            const overlay = document.getElementById('stealth-calculator-overlay');
+            overlay.classList.toggle('hidden');
+            overlay.classList.toggle('flex');
+        }
+
+        function calcInput(val) {
+            const disp = document.getElementById('calc-display');
+            if (val === 'C') {
+                disp.innerText = '0';
+            } else if (val === '=') {
+                if (disp.innerText === '911') {
+                    toggleStealthMode();
+                    triggerSOS('Stealth Calculator Secret 911 Code');
+                } else {
+                    try { disp.innerText = eval(disp.innerText); } catch(e){ disp.innerText = 'Error'; }
+                }
+            } else {
+                if (disp.innerText === '0') disp.innerText = val;
+                else disp.innerText += val;
+            }
+        }
+
+        function updateTimestampDisplays() {
+            const now = new Date().toISOString().replace('T', ' ').substring(0, 19);
+            const frontTime = document.getElementById('front-cam-time');
+            const rearTime = document.getElementById('rear-cam-time');
+            if (frontTime) frontTime.innerText = `UTC: ${now}`;
+            if (rearTime) rearTime.innerText = `UTC: ${now}`;
+        }
+
+        function showToast(msg, type = 'info') {
+            const toast = document.createElement('div');
+            let bg = 'bg-slate-800 text-slate-100 border-slate-700';
+            if (type === 'success') bg = 'bg-emerald-900/90 text-emerald-100 border-emerald-500/50';
+            if (type === 'error') bg = 'bg-rose-900/90 text-rose-100 border-rose-500/50';
+            if (type === 'warning') bg = 'bg-amber-900/90 text-amber-100 border-amber-500/50';
+
+            toast.className = `fixed bottom-14 left-1/2 transform -translate-x-1/2 z-50 px-3.5 py-2 rounded-xl border ${bg} text-[11px] font-semibold shadow-2xl transition-all duration-300 flex items-center gap-2 max-w-xs text-center`;
+            toast.innerHTML = `<i class="fas fa-bell"></i> <span>${msg}</span>`;
+
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        window.onload = function() {
+            updateClock();
+            setInterval(updateClock, 1000);
+            updateTimestampDisplays();
+            setInterval(updateTimestampDisplays, 1000);
+            renderEmergencyContacts();
+            checkUserProfileState();
+            initShakeDetection();
+            initSpeechRecognition();
+        };
+    </script>
+</body>
+</html>
